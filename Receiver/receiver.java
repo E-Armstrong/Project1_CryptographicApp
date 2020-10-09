@@ -1,3 +1,7 @@
+// Project 1: Public-key encrypted message and its authenitic digital digest
+// Completed by Timothy Trusov and Eric Armstrong 
+// CS-3750 Dr. Weiying Zhu
+
 package Receiver;
 
 import java.io.*;
@@ -19,7 +23,7 @@ public class receiver {
 
     static String ALGORITHM = "AES";
     static String AES_CBC_NoPADDING = "AES/CBC/NoPadding";
-
+      //Getting Private Key and Decoder
     public static PrivateKey getPrivateKey(String filename) throws Exception {
         Scanner sc = new Scanner(new File(filename));
         byte[] decodedBytes = Base64.getDecoder().decode(sc.next());
@@ -27,7 +31,7 @@ public class receiver {
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
     }
-
+      //The Conversion method that converts bytes to hex
     private static String bytesToHex(byte[] hash) {
         StringBuffer hexString = new StringBuffer();
         for (int i = 0; i < hash.length; i++) {
@@ -39,7 +43,7 @@ public class receiver {
         }
         return hexString.toString();
     }
-
+      //Byte Decryptor method
     public static byte[] decrypt(byte[] strToDecrypt, final byte[] key) throws InvalidKeyException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidAlgorithmParameterException 
@@ -51,17 +55,18 @@ public class receiver {
         cipher.init(Cipher.DECRYPT_MODE, keySpec, ivspec);
         return cipher.doFinal(strToDecrypt);
     }
-
+         //RSA Padding and Decrytor
     public static byte[] RSAdecrypt(byte[] data, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         return cipher.doFinal(data);
     }
-
+      //Main Method 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Input the name of the message file: ");
         String file = sc.next();
+        //Method to Recieve Files from Sender 
         try{
             PrivateKey rsaKey = getPrivateKey("Receiver/YPrivate.key");
             FileInputStream fin = new FileInputStream("Receiver/message.rsacipher");
