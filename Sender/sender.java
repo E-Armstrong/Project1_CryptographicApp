@@ -1,4 +1,4 @@
-// Project 1: Public-key encrypted message and its authenitic digital digest
+// Project 1: Public-key encrypted message and its authentic digital digest
 // Completed by Timothy Trusov and Eric Armstrong 
 // CS-3750 Dr. Weiying Zhu
 
@@ -18,8 +18,6 @@ import java.security.*;
 import java.security.spec.*;
 
 import javax.xml.bind.DatatypeConverter;
-
-import org.graalvm.compiler.nodes.java.InstanceOfDynamicNode;
 
 import java.math.BigInteger;
 
@@ -108,7 +106,8 @@ public static void main(String[] args) {
             }
             cypherOut.write(cipher.doFinal(addmsgIn.readNBytes(117)));
         }
-        System.out.println("It finished with " + timesAround + " times writing to final.");
+
+        // Close all file connections
         pubKeyIn.close();
         symmetricKeyIn.close();
         inputStream.close();
@@ -200,19 +199,8 @@ public static byte[] swapFirstByte(byte[] data) {
     byte newByte;
 
     newByte = data[0];
-
-/*         System.out.print("OG byte: ");
-    System.out.printf("0x%02X",newByte);
-    System.out.println(""); */
-    
     newByte = (byte) (~newByte);
-
     editedData[0] = newByte; 
-
-/*         System.out.print("Edited byte: ");
-    System.out.printf("0x%02X",editedData[0]);
-    System.out.println(""); */
-
     return editedData;
 }
     

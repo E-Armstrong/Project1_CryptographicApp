@@ -1,4 +1,4 @@
-// Project 1: Public-key encrypted message and its authenitic digital digest
+// Project 1: Public-key encrypted message and its authentic digital digest
 // Completed by Timothy Trusov and Eric Armstrong 
 // CS-3750 Dr. Weiying Zhu
 
@@ -19,11 +19,14 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.NoSuchPaddingException;
 
+import java.math.BigInteger;
+
 public class receiver {
 
     static String ALGORITHM = "AES";
     static String AES_CBC_NoPADDING = "AES/CBC/NoPadding";
-      //Getting Private Key and Decoder
+
+    //Getting Private Key and Decoder
     public static PrivateKey getPrivateKey(String filename) throws Exception {
         Scanner sc = new Scanner(new File(filename));
         byte[] decodedBytes = Base64.getDecoder().decode(sc.next());
@@ -31,7 +34,8 @@ public class receiver {
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
     }
-      //The Conversion method that converts bytes to hex
+
+    //The Conversion method that converts bytes to hex
     private static String bytesToHex(byte[] hash) {
         StringBuffer hexString = new StringBuffer();
         for (int i = 0; i < hash.length; i++) {
@@ -43,32 +47,67 @@ public class receiver {
         }
         return hexString.toString();
     }
-      //Byte Decryptor method
+
+    //Byte Decryptor method
     public static byte[] decrypt(byte[] strToDecrypt, final byte[] key) throws InvalidKeyException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
             InvalidAlgorithmParameterException 
     {
+        byte[] correctByteNumber4Key = new byte[16];
+        for(int i = 0; i < 16; i++){
+            correctByteNumber4Key[i] = key[i];
+        }
         byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         Cipher cipher = Cipher.getInstance(AES_CBC_NoPADDING);
-        final SecretKeySpec keySpec = new SecretKeySpec(key, ALGORITHM);
+        final SecretKeySpec keySpec = new SecretKeySpec(correctByteNumber4Key, ALGORITHM);
         cipher.init(Cipher.DECRYPT_MODE, keySpec, ivspec);
         return cipher.doFinal(strToDecrypt);
     }
-         //RSA Padding and Decrytor
+
+    //RSA Padding and Decrytor
     public static byte[] RSAdecrypt(byte[] data, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         return cipher.doFinal(data);
     }
-      //Main Method 
+
+    //read key parameters from a file and generate the private key 
+    // Got this method from RSAConfidentiality.java
+  public static PrivateKey readPrivKeyFromFile(String keyFileName) 
+  throws IOException {
+
+    ObjectInputStream oin = new ObjectInputStream(new BufferedInputStream(new FileInputStream(keyFileName)));      
+
+try {
+  BigInteger m = (BigInteger) oin.readObject();
+  BigInteger e = (BigInteger) oin.readObject();
+
+  System.out.println("Read from " + keyFileName + ": modulus = " + 
+      m.toString() + ", exponent = " + e.toString() + "\n");
+
+  RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(m, e);
+  KeyFactory factory = KeyFactory.getInstance("RSA");
+  PrivateKey key = factory.generatePrivate(keySpec);
+
+  return key;
+} catch (Exception e) {
+  throw new RuntimeException("Spurious serialisation error", e);
+} finally {
+  oin.close();
+}
+}
+
+    //Main Method 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         System.out.print("Input the name of the message file: ");
         String file = sc.next();
         //Method to Recieve Files from Sender 
         try{
-            PrivateKey rsaKey = getPrivateKey("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
+            PrivateKey rsaKey = readPrivKeyFromFile("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
+            System.out.println("The rsaKey" + rsaKey.toString());
+            // PrivateKey rsaKey = getPrivateKey("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
             FileInputStream fin = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.rsacipher");
             OutputStream as = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg"); 
             int i;    
