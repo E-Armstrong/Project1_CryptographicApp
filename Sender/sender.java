@@ -6,47 +6,51 @@ package Sender;
 
 import java.io.*;
 import java.util.*;
-import java.security.*;
-import java.security.spec.*;
 import java.nio.charset.StandardCharsets;
+
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+
+import java.security.*;
+import java.security.spec.*;
+
 import javax.xml.bind.DatatypeConverter;
 
 import org.graalvm.compiler.nodes.java.InstanceOfDynamicNode;
 
 import java.math.BigInteger;
 
+// must use ObjectInputStream & ObjectOutputStream for pub/private key files
+// must use BufferedInputStream & BufferedOutputStream for message files
+// TODO: buffer all of my inputs/outputs w/BufferedOutputStream
+
 public class sender {
-    
-    
 public static void main(String[] args) {
     try{
-        // TODO: buffer all of my inputs/outputs w/BufferedOutputStream
         
         // Streams and variables
-        OutputStream os = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.dd"); 
-        OutputStream addmsgOut = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg"); 
+        OutputStream os = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.dd")); 
+        OutputStream addmsgOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg")); 
         FileInputStream inputStream2 = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg");
         BufferedInputStream addmsgIn = new BufferedInputStream(inputStream2); 
-        String stringMessage = "";
+        ObjectInputStream pubKeyIn = new ObjectInputStream(new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/YPublic.key")));      
+        BufferedOutputStream cypherOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.rsacipher")); 
+        SecureRandom random = new SecureRandom();
         String aes = "";
         byte[] data = new byte[1024];
         String algorithm = "AES";
         String padding = "AES/CBC/NoPadding";
         Integer numBytes = 0;
-        
+
         // Get public key 
-        PublicKey rsaKey = readPubKeyFromFile("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/YPublic.key");
-        System.out.println("Public key: " + rsaKey);
+        PublicKey pubKey = readPubKeyFromFile("YPublic.key", pubKeyIn);
 
         // Get and generate symmetric key
         Scanner f = new Scanner(new File("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/symmetric.key"));
         String stringKey = f.next();
-        System.out.println(stringKey);
         f.close();
         byte[] byteKey = stringKey.getBytes(StandardCharsets.UTF_8);
         SecretKeySpec secretKeyxy = new SecretKeySpec(byteKey,algorithm);
@@ -57,28 +61,24 @@ public static void main(String[] args) {
         byte[] IVBytes = generateKey(algorithm);
         byte[] initializationVector = new byte[16]; 
         secureRandom.nextBytes(initializationVector);
-
-/*             KeyGenerator keygenerator = KeyGenerator.getInstance(algorithm);
+        
+        /*             KeyGenerator keygenerator = KeyGenerator.getInstance(algorithm);
         keygenerator.init(256, securerandom);
         Secretkey key = keygenerator.generateKey(); */
-
+        
         // Get M filename from user
         Scanner sc = new Scanner(System.in);
         System.out.print("Input the name of the message file: ");
         String file = sc.nextLine();
         FileInputStream inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/" + file);
         BufferedInputStream messageBufStream = new BufferedInputStream(inputStream);
-
-        // Read M input and put value into a String variable 
-        while(messageBufStream.available() > 0) {
-            char c = (char) messageBufStream.read();
-            stringMessage += Character.toString(c);
-            numBytes++;
-        }
-
+        
+        // Read and save M input
+        byte[] byteMessage = messageBufStream.readAllBytes();
+        
         // Create hash of M
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(stringMessage.getBytes(StandardCharsets.UTF_8));
+        byte[] hash = digest.digest(byteMessage);
         
         // See if user wants to swap first bit of hash, then save the hash
         System.out.print("Do you want to invert the 1st byte in SHA256(M)? (Y or N)");
@@ -98,31 +98,36 @@ public static void main(String[] args) {
         // Write encrypted hash to file and a string variable 
         addmsgOut.write(encryptedHash);
         aes += bytesToHex(encryptedHash);
-        System.out.println("AES: " + aes);
-
+        System.out.println("Encrypted Hash: " + aes);
+        
         // Append M to message.add-msg
         addmsgOut.write(messageBufStream.readAllBytes()); // Suppose to do this "piece by piece" buttt.....why? 
-
-        data = new byte[117];
-        FileOutputStream outputStream = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.rsacipher"); 
-        int i = 0;
-        while ((i = addmsgIn.read(data)) != -1) {
-            byte[] rsaEncrypted = RSAencrypt(data, rsaKey);
-            outputStream.write(rsaEncrypted);
+        
+        // Encrypt M and H using RSA encyption
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        while ((addmsgIn.available()) > 0) {
+            cipher.init(Cipher.ENCRYPT_MODE, pubKey,random);
+            if(addmsgIn.available() < 117) {
+                byte[] finalByte = new byte[117];
+                finalByte = addmsgIn.readNBytes(117);
+                cypherOut.write(cipher.doFinal(finalByte));
+            }
+            cypherOut.write(cipher.doFinal(addmsgIn.readNBytes(117)));
         }
-
+        System.out.println("It finished!!!");
+        pubKeyIn.close();
         inputStream.close();
         inputStream2.close();
         addmsgIn.close();
         addmsgOut.close();
         messageBufStream.close();
-        outputStream.close();
+        cypherOut.close();
         os.close();
         sc.close();
     }    
     catch(Exception e){
-        System.out.println("Exception thrown: " + e.getLocalizedMessage());
-    }    
+        System.out.println("Exception thrown: " + e.getMessage());
+    } 
 }
 
 public static PublicKey getPublicKey(String filename) throws Exception {
@@ -132,34 +137,27 @@ public static PublicKey getPublicKey(String filename) throws Exception {
     KeyFactory kf = KeyFactory.getInstance("RSA");
     return kf.generatePublic(spec);
 }
-
 //read key parameters from a file and generate the public key 
 // (Method taken from RSAConfidentiality.java)
-  public static PublicKey readPubKeyFromFile(String keyFileName) 
-  throws IOException {
+public static PublicKey readPubKeyFromFile(String keyFileName, ObjectInputStream oin) 
+throws IOException {
+    
+  try {
+      BigInteger m = (BigInteger) oin.readObject();
+      BigInteger e = (BigInteger) oin.readObject();
 
-InputStream in = 
-    sender.class.getResourceAsStream(keyFileName);
-ObjectInputStream oin =
-    new ObjectInputStream(new BufferedInputStream(in));
+      System.out.println("Read from " + keyFileName + ": modulus = " + 
+          m.toString() + ", exponent = " + e.toString() + "\n");
 
-try {
-  BigInteger m = (BigInteger) oin.readObject();
-  BigInteger e = (BigInteger) oin.readObject();
+      RSAPublicKeySpec keySpec = new RSAPublicKeySpec(m, e);
+      KeyFactory factory = KeyFactory.getInstance("RSA");
+      PublicKey key = factory.generatePublic(keySpec);
 
-  System.out.println("Read from " + keyFileName + ": modulus = " + 
-      m.toString() + ", exponent = " + e.toString() + "\n");
-
-  RSAPublicKeySpec keySpec = new RSAPublicKeySpec(m, e);
-  KeyFactory factory = KeyFactory.getInstance("RSA");
-  PublicKey key = factory.generatePublic(keySpec);
-
-  return key;
-} catch (Exception e) {
-  throw new RuntimeException("Spurious serialisation error", e);
-} finally {
-  oin.close();
-}
+      return key;
+  } catch (Exception e) {
+      throw new RuntimeException("Spurious serialisation error", e);
+  } finally {
+  }
 }
 
 private static String bytesToHex(byte[] hash) {
