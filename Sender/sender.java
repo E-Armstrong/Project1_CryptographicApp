@@ -34,26 +34,21 @@ public static void main(String[] args) {
         // Streams and variables
         OutputStream os = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.dd")); 
         OutputStream addmsgOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg")); 
+        BufferedOutputStream cypherOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.rsacipher")); 
         FileInputStream inputStream2 = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg");
         BufferedInputStream addmsgIn = new BufferedInputStream(inputStream2); 
         ObjectInputStream pubKeyIn = new ObjectInputStream(new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/YPublic.key")));      
-        BufferedOutputStream cypherOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.rsacipher")); 
         SecureRandom random = new SecureRandom();
         String aes = "";
-        byte[] data = new byte[1024];
         String algorithm = "AES";
         String padding = "AES/CBC/NoPadding";
-        Integer numBytes = 0;
 
         // Get public key 
         PublicKey pubKey = readPubKeyFromFile("YPublic.key", pubKeyIn);
 
         // Get and generate symmetric key
-        Scanner f = new Scanner(new File("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/symmetric.key"));
-        String stringKey = f.next();
-        f.close();
-        byte[] byteKey = stringKey.getBytes(StandardCharsets.UTF_8);
-        SecretKeySpec secretKeyxy = new SecretKeySpec(byteKey,algorithm);
+        BufferedInputStream symmetricKeyIn = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/symmetric.key"));
+        SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricKeyIn.readNBytes(16),algorithm);
         byte[] primedKeyxy = secretKeyxy.getEncoded();
         
         // Create initilization vector (First two lines only ones used for now)
@@ -61,10 +56,6 @@ public static void main(String[] args) {
         byte[] IVBytes = generateKey(algorithm);
         byte[] initializationVector = new byte[16]; 
         secureRandom.nextBytes(initializationVector);
-        
-        /*             KeyGenerator keygenerator = KeyGenerator.getInstance(algorithm);
-        keygenerator.init(256, securerandom);
-        Secretkey key = keygenerator.generateKey(); */
         
         // Get M filename from user
         Scanner sc = new Scanner(System.in);
@@ -75,7 +66,7 @@ public static void main(String[] args) {
         
         // Read and save M input
         byte[] byteMessage = messageBufStream.readAllBytes();
-        
+ 
         // Create hash of M
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(byteMessage);
@@ -86,10 +77,10 @@ public static void main(String[] args) {
         if( file2.equals("yes") || file2.equals("Yes") || file2.equals("Y") || file2.equals("y")) {
             hash = swapFirstByte(hash);
             os.write(hash);
-            System.out.println("MODIFIED SHA 256: " + bytesToHex(hash));
+            System.out.println("MODIFIED Hash: " + bytesToHex(hash));
         } else {
             os.write(hash);
-            System.out.println("SHA 256: " + bytesToHex(hash));
+            System.out.println("Hash: " + bytesToHex(hash));
         }
         
         // Encrypt the hash with Kxy key in AES Encryption
@@ -101,21 +92,25 @@ public static void main(String[] args) {
         System.out.println("Encrypted Hash: " + aes);
         
         // Append M to message.add-msg
-        addmsgOut.write(messageBufStream.readAllBytes()); // Suppose to do this "piece by piece" buttt.....why? 
+        addmsgOut.write(byteMessage); // Suppose to do this "piece by piece" buttt.....why? 
         
         // Encrypt M and H using RSA encyption
+        Integer timesAround = 0;
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         while ((addmsgIn.available()) > 0) {
+            timesAround++;
             cipher.init(Cipher.ENCRYPT_MODE, pubKey,random);
             if(addmsgIn.available() < 117) {
                 byte[] finalByte = new byte[117];
                 finalByte = addmsgIn.readNBytes(117);
                 cypherOut.write(cipher.doFinal(finalByte));
+                break;
             }
             cypherOut.write(cipher.doFinal(addmsgIn.readNBytes(117)));
         }
-        System.out.println("It finished!!!");
+        System.out.println("It finished with " + timesAround + " times writing to final.");
         pubKeyIn.close();
+        symmetricKeyIn.close();
         inputStream.close();
         inputStream2.close();
         addmsgIn.close();

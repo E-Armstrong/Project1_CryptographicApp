@@ -68,12 +68,12 @@ public class receiver {
         String file = sc.next();
         //Method to Recieve Files from Sender 
         try{
-            PrivateKey rsaKey = getPrivateKey("Receiver/YPrivate.key");
-            FileInputStream fin = new FileInputStream("Receiver/message.rsacipher");
-            OutputStream as = new FileOutputStream("Receiver/message.add-msg"); 
+            PrivateKey rsaKey = getPrivateKey("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
+            FileInputStream fin = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.rsacipher");
+            OutputStream as = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg"); 
             int i;    
             byte[] data = new byte[128];
-            Scanner f = new Scanner(new File("Receiver/symmetric.key"));
+            Scanner f = new Scanner(new File("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/symmetric.key"));
             String key = f.next();
             f.close();
             byte[] b = key.getBytes(StandardCharsets.UTF_8);
@@ -83,7 +83,7 @@ public class receiver {
             }
             fin.close();
             as.close();
-            byte[] array = Files.readAllBytes(Paths.get("Receiver/message.add-msg"));
+            byte[] array = Files.readAllBytes(Paths.get("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg"));
             data = new byte[32];
             byte[] message = new byte[array.length - 32];
             for(i = 0; i < array.length; i++){
@@ -94,15 +94,15 @@ public class receiver {
                     message[i-32] = array[i];
                 }
             }
-            OutputStream os = new FileOutputStream("Receiver/" + file); 
+            OutputStream os = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + file); 
             os.write(message);
             os.close();
             byte[] plainText = decrypt(data, b);
-            os = new FileOutputStream("Receiver/message.dd"); 
+            os = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.dd"); 
             os.write(plainText);
             os.close();
             System.out.println("Digest: " + bytesToHex(plainText));
-            fin = new FileInputStream("Receiver/" + file);
+            fin = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + file);
             data = new byte[1024];
             String sha = "";
             while ((i = fin.read(data)) != -1) {
@@ -121,7 +121,7 @@ public class receiver {
             fin.close();
         }    
         catch(Exception e){
-            System.out.println(e);
+            System.out.println("Exception: " + e);
         }    
         sc.close();
     }
