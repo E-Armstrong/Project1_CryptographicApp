@@ -50,19 +50,20 @@ public static void main(String[] args) {
         byte[] primedKeyxy = secretKeyxy.getEncoded();
         
         // Create initilization vector (First two lines only ones used for now)
-        SecureRandom secureRandom = new SecureRandom(); 
-        byte[] IVBytes = generateKey(algorithm);
+        //SecureRandom secureRandom = new SecureRandom(); 
+        //byte[] IVBytes = generateKey(algorithm);
+        byte[] IVBytes = new byte[16];  // (00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00);
         byte[] initializationVector = new byte[16]; 
-        secureRandom.nextBytes(initializationVector);
+        // secureRandom.nextBytes(initializationVector);
         
         // Get M filename from user
         Scanner sc = new Scanner(System.in);
         System.out.print("Input the name of the message file: ");
         String file = sc.nextLine();
-        FileInputStream inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/" + file);
-        BufferedInputStream messageBufStream = new BufferedInputStream(inputStream);
         
         // Read and save M input
+        FileInputStream inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/" + file);
+        BufferedInputStream messageBufStream = new BufferedInputStream(inputStream);
         byte[] byteMessage = messageBufStream.readAllBytes();
  
         // Create hash of M
@@ -70,7 +71,7 @@ public static void main(String[] args) {
         byte[] hash = digest.digest(byteMessage);
         
         // See if user wants to swap first bit of hash, then save the hash
-        System.out.print("Do you want to invert the 1st byte in SHA256(M)? (Y or N)");
+        System.out.print("Do you want to invert the 1st byte in SHA256(M)? (Y or N) ");
         String file2 = sc.nextLine();
         if( file2.equals("yes") || file2.equals("Yes") || file2.equals("Y") || file2.equals("y")) {
             hash = swapFirstByte(hash);

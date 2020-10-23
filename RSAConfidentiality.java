@@ -89,7 +89,6 @@ public class RSAConfidentiality {
     cipher.init(Cipher.DECRYPT_MODE, privKey2);
     byte[] plainText2 = cipher.doFinal(cipherText2);
     System.out.println("plainText2 : " + new String(plainText2) + "\n");
-
   }
 
 
