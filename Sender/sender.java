@@ -94,18 +94,25 @@ public static void main(String[] args) {
         addmsgOut.write(byteMessage); // Suppose to do this "piece by piece" buttt.....why? 
         
         // Encrypt M and H using RSA encyption
-        Integer timesAround = 0;
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+/*         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         while ((addmsgIn.available()) > 0) {
-            timesAround++;
             cipher.init(Cipher.ENCRYPT_MODE, pubKey,random);
             if(addmsgIn.available() < 117) {
                 byte[] finalByte = new byte[117];
                 finalByte = addmsgIn.readNBytes(117);
+                System.out.println("Buffer: " + new String(finalByte));
                 cypherOut.write(cipher.doFinal(finalByte));
                 break;
             }
             cypherOut.write(cipher.doFinal(addmsgIn.readNBytes(117)));
+        } */
+
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        int i = 0; 
+        byte[] piece = new byte[117];
+        cipher.init(Cipher.ENCRYPT_MODE, pubKey,random);
+        while ((i = addmsgIn.read(piece)) != -1) {
+            cypherOut.write(cipher.doFinal(Arrays.copyOfRange(piece, 0, i)));
         }
 
         // Close all file connections

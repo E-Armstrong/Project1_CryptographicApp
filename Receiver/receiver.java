@@ -53,8 +53,7 @@ public class receiver {
     //Byte Decryptor method
     public static byte[] decrypt(byte[] strToDecrypt, final byte[] key) throws InvalidKeyException,
             NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException,
-            InvalidAlgorithmParameterException 
-    {
+            InvalidAlgorithmParameterException {
         byte[] correctByteNumber4Key = new byte[16];
         for(int i = 0; i < 16; i++){
             correctByteNumber4Key[i] = key[i];
@@ -76,29 +75,29 @@ public class receiver {
 
     //read key parameters from a file and generate the private key 
     // Method from RSAConfidentiality.java
-  public static PrivateKey readPrivKeyFromFile(String keyFileName) 
-  throws IOException {
+    public static PrivateKey readPrivKeyFromFile(String keyFileName) 
+    throws IOException {
 
     ObjectInputStream oin = new ObjectInputStream(new BufferedInputStream(new FileInputStream(keyFileName)));      
 
-try {
-  BigInteger m = (BigInteger) oin.readObject();
-  BigInteger e = (BigInteger) oin.readObject();
+    try {
+    BigInteger m = (BigInteger) oin.readObject();
+    BigInteger e = (BigInteger) oin.readObject();
 
-  System.out.println("Read from " + keyFileName + ": modulus = " + 
-      m.toString() + ", exponent = " + e.toString() + "\n");
+    System.out.println("Read from " + keyFileName + ": modulus = " + 
+        m.toString() + ", exponent = " + e.toString() + "\n");
 
-  RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(m, e);
-  KeyFactory factory = KeyFactory.getInstance("RSA");
-  PrivateKey key = factory.generatePrivate(keySpec);
+    RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(m, e);
+    KeyFactory factory = KeyFactory.getInstance("RSA");
+    PrivateKey key = factory.generatePrivate(keySpec);
 
-  return key;
-} catch (Exception e) {
-  throw new RuntimeException("Spurious serialisation error", e);
-} finally {
-  oin.close();
-}
-}
+    return key;
+    } catch (Exception e) {
+    throw new RuntimeException("Spurious serialisation error", e);
+    } finally {
+    oin.close();
+    }
+    }
 
     //Main Method 
     public static void main(String[] args) {
@@ -114,12 +113,14 @@ try {
             BufferedInputStream symmetricKeyIn = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/symmetric.key"));
             SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricKeyIn.readNBytes(16), "AES"); 
             byte[] primedKeyxy = secretKeyxy.getEncoded();
-            
+            // byte[] IVBytes = new byte[16];
+
             // Step 3
             // Get message file name from user
             Scanner sc = new Scanner(System.in);
             System.out.print("Input the name of the message file: "); 
             String messageFileName = sc.next();
+            sc.close();
             
             // Step 4
             // Get cypher file            
@@ -147,7 +148,7 @@ try {
             }
 
             // Decrypt encrypted hash (authentic digital digest) and display it
-            byte[] digitalDigest = decrypt(encryptedHash, primedKeyxy);
+            byte[] digitalDigest = decrypt(encryptedHash, primedKeyxy); 
             System.out.println("Decrypted Hash:  " + bytesToHex(digitalDigest));
 
             // Write decrypted authentic digital digest to file 
@@ -173,49 +174,7 @@ try {
                 System.out.println("Rejected. Digital digest does NOT pass the authentication check.");
             }
 
-            /* byte[] data = new byte[128];
-            int i;    
-            while ((i = inputStream.read(data)) != -1) {
-                byte[] rsaDecrypted = RSAdecrypt(data, privateKey);
-                addmsgOut.write(rsaDecrypted);
-            }
-            inputStream.close();
-            addmsgOut.close();
-            byte[] array = Files.readAllBytes(Paths.get("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg"));
-            data = new byte[32];
-            byte[] message = new byte[array.length - 32];
-            for(i = 0; i < array.length; i++){
-                if(i < 32){
-                    data[i] = array[i];
-                }
-                else{
-                    message[i-32] = array[i];
-                }
-            }
-            OutputStream os = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + messageFileName); 
-            os.write(message);
-            os.close();
-            byte[] plainText = decrypt(data, primedKeyxy);
-            os = new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.dd"); 
-            os.write(plainText);
-            os.close();
-            System.out.println("Digest: " + bytesToHex(plainText));
-            inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + messageFileName);
-            data = new byte[1024];
-            String sha = "";
-            while ((i = inputStream.read(data)) != -1) {
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                byte[] encodedhash = digest.digest(data);
-                sha += bytesToHex(encodedhash);
-                break;
-            }
-            System.out.println("Calculated Hash: " + sha);
-            if(sha.equals(bytesToHex(plainText))){
-                System.out.println("Authentic");
-            }
-            else{
-                System.out.println("Corrupt");
-            } */
+            symmetricKeyIn.close();
             messageOut.close();
             addmsgOut.close();
             messageBufStream.close();
