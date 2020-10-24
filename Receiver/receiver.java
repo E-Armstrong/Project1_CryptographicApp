@@ -108,13 +108,14 @@ public class receiver {
             // Get and generate private key
             PrivateKey privateKey = readPrivKeyFromFile("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
             System.out.println("The rsaKey" + privateKey.toString());
-            
-            // Get and generate symmetric key
-            BufferedInputStream symmetricKeyIn = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/symmetric.key"));
-            SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricKeyIn.readNBytes(16), "AES"); 
-            byte[] primedKeyxy = secretKeyxy.getEncoded();
-            // byte[] IVBytes = new byte[16];
 
+            // Get and generate symmetric key
+            ObjectInputStream symmetricKeyIn = new ObjectInputStream(
+                new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/symmetric.key")));
+            String symmetricString = (String) symmetricKeyIn.readObject();
+            SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricString.getBytes("UTF-8"), "AES"); 
+            byte[] primedKeyxy = secretKeyxy.getEncoded();
+            
             // Step 3
             // Get message file name from user
             Scanner sc = new Scanner(System.in);

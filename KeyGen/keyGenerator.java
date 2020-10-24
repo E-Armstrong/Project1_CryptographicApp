@@ -3,6 +3,7 @@
 // CS-3750 Dr. Weiying Zhu
 
 import java.io.*;
+import java.util.*;
 
 import java.security.Key;
 import java.security.PublicKey;
@@ -20,7 +21,7 @@ import java.math.BigInteger;
 
 import javax.crypto.Cipher; 
 
-public class keyGenerator2 {    
+public class keyGenerator {    
     public static void main(String[] args) throws Exception {
     
         //Generate a pair of keys
@@ -51,8 +52,8 @@ public class keyGenerator2 {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter 16-character string: ");
         String key = sc.next();
-        BufferedWriter writer = new BufferedWriter(new FileWriter("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/KeyGen/symmetric.key"));
-        writer.write(key);
+        ObjectOutputStream writer = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/KeyGen/symmetric.key")));
+        writer.writeObject(key);
         writer.close();
         sc.close();
       

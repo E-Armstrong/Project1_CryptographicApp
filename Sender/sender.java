@@ -45,8 +45,10 @@ public static void main(String[] args) {
         PublicKey pubKey = readPubKeyFromFile("YPublic.key", pubKeyIn);
 
         // Get and generate symmetric key
-        BufferedInputStream symmetricKeyIn = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/symmetric.key"));
-        SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricKeyIn.readNBytes(16),algorithm);
+        ObjectInputStream symmetricKeyIn = new ObjectInputStream(
+            new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/symmetric.key")));
+        String symmetricString = (String) symmetricKeyIn.readObject();
+        SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricString.getBytes("UTF-8"), "AES"); 
         byte[] primedKeyxy = secretKeyxy.getEncoded();
         
         // Create initilization vector (First two lines only ones used for now)
@@ -128,7 +130,7 @@ public static void main(String[] args) {
         sc.close();
     }    
     catch(Exception e){
-        System.out.println("Exception thrown: " + e.getMessage());
+        System.out.println("Exception thrown: " + e);
     } 
 }
 
