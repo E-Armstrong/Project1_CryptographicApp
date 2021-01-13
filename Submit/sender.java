@@ -1,8 +1,8 @@
 // Project 1: Public-key encrypted message and its authentic digital digest
-// Eric Armstrong 
+// Completed by Timothy Trusov and Eric Armstrong 
 // CS-3750 Dr. Weiying Zhu
 
-//package Sender;
+package Sender;
 
 import java.io.*;
 import java.util.*;
@@ -17,39 +17,46 @@ import javax.crypto.SecretKey;
 import java.security.*;
 import java.security.spec.*;
 
-//import javax.xml.bind.DatatypeConverter;
+import javax.xml.bind.DatatypeConverter;
 
 import java.math.BigInteger;
 
-public class sender {
+// must use ObjectInputStream & ObjectOutputStream for pub/private key files
+// must use BufferedInputStream & BufferedOutputStream for message files
+// TODO: buffer all of my inputs/outputs w/BufferedOutputStream
 
+public class sender {
 public static void main(String[] args) {
     try{
         
         // Streams and variables
-        OutputStream os = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.dd")); 
-        OutputStream addmsgOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg")); 
-        BufferedOutputStream cypherOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.rsacipher")); 
-        FileInputStream inputStream2 = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/message.add-msg");
+        OutputStream os = new BufferedOutputStream(new FileOutputStream("message.dd")); 
+        OutputStream addmsgOut = new BufferedOutputStream(new FileOutputStream("message.add-msg")); 
+        BufferedOutputStream cypherOut = new BufferedOutputStream(new FileOutputStream("message.rsacipher")); 
+        FileInputStream inputStream2 = new FileInputStream("message.add-msg");
         BufferedInputStream addmsgIn = new BufferedInputStream(inputStream2); 
-        ObjectInputStream pubKeyIn = new ObjectInputStream(new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/YPublic.key")));      
+        ObjectInputStream pubKeyIn = new ObjectInputStream(new BufferedInputStream(new FileInputStream("YPublic.key")));      
         SecureRandom random = new SecureRandom();
         String aes = "";
         String algorithm = "AES";
         String padding = "AES/CBC/NoPadding";
-        
+
         // Get public key 
         PublicKey pubKey = readPubKeyFromFile("YPublic.key", pubKeyIn);
+
         // Get and generate symmetric key
         ObjectInputStream symmetricKeyIn = new ObjectInputStream(
-            new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/symmetric.key")));
+            new BufferedInputStream(new FileInputStream("symmetric.key")));
         String symmetricString = (String) symmetricKeyIn.readObject();
         SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricString.getBytes("UTF-8"), "AES"); 
         // byte[] primedKeyxy = secretKeyxy.getEncoded();
         
         // Create initilization vector (First two lines only ones used for now)
+        //SecureRandom secureRandom = new SecureRandom(); 
+        //byte[] IVBytes = generateKey(algorithm);
         byte[] IVBytes = new byte[16];  // (00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00);
         byte[] initializationVector = new byte[16]; 
+        // secureRandom.nextBytes(initializationVector);
         
         // Get M filename from user
         Scanner sc = new Scanner(System.in);
@@ -57,16 +64,10 @@ public static void main(String[] args) {
         String file = sc.nextLine();
         
         // Read and save M input
-        FileInputStream inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Sender/" + file);
+        FileInputStream inputStream = new FileInputStream("" + file);
         BufferedInputStream messageBufStream = new BufferedInputStream(inputStream);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024 * 10];
-        int m = 0;
-        while ((m = messageBufStream.read(buffer)) != -1) {
-            out.write(buffer, 0, m);
-        }
-        byte[] byteMessage = out.toByteArray();
-
+        byte[] byteMessage = messageBufStream.readAllBytes();
+ 
         // Create hash of M
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(byteMessage);
@@ -93,22 +94,18 @@ public static void main(String[] args) {
         addmsgOut.write(encryptedHash);
         aes += bytesToHex(encryptedHash);
         System.out.println("Encrypted Hash: " + aes);
-
+        
         // Append M to message.add-msg
-        addmsgOut.write(byteMessage); // Suppose to do this "piece by piece" but...why? 
+        addmsgOut.write(byteMessage); // Suppose to do this "piece by piece" buttt.....why? 
         
         // Encrypt M and H using RSA encyption
         Cipher cipher2 = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         int i = 0; 
         byte[] piece = new byte[117];
         cipher2.init(Cipher.ENCRYPT_MODE, pubKey,random);
-        
-        int counter;
-        do {
-            counter = addmsgIn.read(piece);
+        while ((i = addmsgIn.read(piece)) != -1) {
             cypherOut.write(cipher2.doFinal(Arrays.copyOfRange(piece, 0, i)));
         }
-        while (counter != -1);
 
         // Close all file connections
         pubKeyIn.close();

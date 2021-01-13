@@ -1,5 +1,5 @@
 // Project 1: Public-key encrypted message and its authenitic digital digest
-// Eric Armstrong 
+// Completed by Timothy Trusov and Eric Armstrong 
 // CS-3750 Dr. Weiying Zhu
 
 import java.io.*;
@@ -32,14 +32,6 @@ public class keyGenerator {
         Key pubKey = pair.getPublic();
         Key privKey = pair.getPrivate();
 
-        //Generate SECOND pair of keys
-        SecureRandom random2 = new SecureRandom();
-        KeyPairGenerator generator2 = KeyPairGenerator.getInstance("RSA");
-        generator2.initialize(1024, random2);  //1024: key size in bits
-        KeyPair pair2 = generator.generateKeyPair();
-        Key pubKey2 = pair2.getPublic();
-        Key privKey2 = pair2.getPrivate();
-
         /* next, store the keys to files, read them back from files, 
            and then, encrypt & decrypt using the keys from files. */
     
@@ -49,21 +41,13 @@ public class keyGenerator {
             RSAPublicKeySpec.class);
         RSAPrivateKeySpec privKSpec = factory.getKeySpec(privKey, 
             RSAPrivateKeySpec.class);
-        RSAPublicKeySpec pubKSpec2 = factory.getKeySpec(pubKey2, 
-            RSAPublicKeySpec.class);
-        RSAPrivateKeySpec privKSpec2 = factory.getKeySpec(privKey2, 
-            RSAPrivateKeySpec.class);
-
+    
         //save the parameters of the keys to the files
         saveToFile("YPublic.key", pubKSpec.getModulus(), 
             pubKSpec.getPublicExponent());
         saveToFile("YPrivate.key", privKSpec.getModulus(), 
             privKSpec.getPrivateExponent());
-        saveToFile("XPublic.key", pubKSpec2.getModulus(), 
-            pubKSpec2.getPublicExponent());
-        saveToFile("XPrivate.key", privKSpec2.getModulus(), 
-            privKSpec2.getPrivateExponent());
-
+      
         // Create symmertric key
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter 16-character string: ");
@@ -102,7 +86,7 @@ public class keyGenerator {
           throws IOException {
     
         InputStream in = 
-            new FileInputStream(keyFileName);
+            RSAConfidentiality.class.getResourceAsStream(keyFileName);
         ObjectInputStream oin =
             new ObjectInputStream(new BufferedInputStream(in));
     
@@ -131,7 +115,7 @@ public class keyGenerator {
           throws IOException {
     
         InputStream in = 
-            new FileInputStream(keyFileName);
+            RSAConfidentiality.class.getResourceAsStream(keyFileName);
         ObjectInputStream oin =
             new ObjectInputStream(new BufferedInputStream(in));
     

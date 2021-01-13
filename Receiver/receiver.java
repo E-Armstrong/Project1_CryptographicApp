@@ -1,8 +1,8 @@
 // Project 1: Public-key encrypted message and its authentic digital digest
-// Completed by Timothy Trusov and Eric Armstrong 
+// Eric Armstrong 
 // CS-3750 Dr. Weiying Zhu
 
-package Receiver;
+//package Receiver;
 
 import java.io.*;
 import java.util.*;
@@ -20,13 +20,126 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.NoSuchPaddingException;
 
 import java.math.BigInteger;
-import java.ArrayList; 
 
 public class receiver {
-
+    
     static String ALGORITHM = "AES";
     static String AES_CBC_NoPADDING = "AES/CBC/NoPadding";
-
+    
+    //Main Method 
+    public static void main(String[] args) {
+        
+        try{
+                        
+            // Step 2
+            // Get and generate private key
+            PrivateKey privateKey = readPrivKeyFromFile("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
+            System.out.println("The rsaKey" + privateKey.toString());
+    
+            // Get and generate symmetric key
+            ObjectInputStream symmetricKeyIn = new ObjectInputStream(
+                new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/symmetric.key")));
+            String symmetricString = (String) symmetricKeyIn.readObject();
+            SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricString.getBytes("UTF-8"), "AES"); 
+            // byte[] primedKeyxy = secretKeyxy.getEncoded();
+            
+            // Step 3
+            // Get message file name from user
+            Scanner sc = new Scanner(System.in);
+            System.out.print("Input the name of the message file: "); 
+            String messageFileName = sc.next();
+            sc.close();
+            
+            // Step 4
+            // Get cypher file            
+            FileInputStream inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.rsacipher");
+            BufferedInputStream cypherBufStream = new BufferedInputStream(inputStream);
+            
+            // Decrypt M and H using RSA encyption
+            BufferedOutputStream addmsgOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg")); 
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            cipher.init(Cipher.DECRYPT_MODE, privateKey);
+            byte[] piece3 = new byte[128];
+            int e;
+            ByteArrayOutputStream out4 = new ByteArrayOutputStream();
+            while ((e = cypherBufStream.read(piece3)) != -1) {
+                out4.write(piece3, 0, e);
+                out4.flush();
+                addmsgOut.write(cipher.doFinal(out4.toByteArray()));
+                out4.reset();
+            }
+            addmsgOut.flush();
+    
+            // Step 5
+            // Read encrypted hash (or authentic digital digest) from add-msg
+            BufferedInputStream addmsgIn = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg"));
+            ByteArrayOutputStream out2 = new ByteArrayOutputStream();
+            byte[] buffer2 = new byte[32];
+            int k = 0;
+            while ((k = addmsgIn.read(buffer2)) != -1) {
+                out2.write(buffer2, 0, k);
+                break;
+            }
+            byte[] encryptedHash = out2.toByteArray();
+            
+            // Copy rest of message from message.add-msg to user named message
+            BufferedOutputStream messageOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + messageFileName));
+            byte[] piece2 = new byte[1024 * 20];
+            int n;
+            while ((n = addmsgIn.read(piece2)) != -1) {
+                messageOut.write(Arrays.copyOfRange(piece2, 0, n));
+            }
+    
+            // Decrypt encrypted hash (authentic digital digest) and display it
+            Cipher cipher2 = Cipher.getInstance("AES/CBC/NoPadding", "SunJCE");
+            cipher2.init(Cipher.DECRYPT_MODE, secretKeyxy, new IvParameterSpec("0000000000000000".getBytes("UTF-8")));
+            byte[] digitalDigest = cipher2.doFinal(encryptedHash);
+            System.out.println("Decrypted Hash:  " + bytesToHex(digitalDigest));
+    
+    
+            // Write decrypted authentic digital digest to file 
+            BufferedOutputStream ddOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.dd"));
+            ddOut.write(digitalDigest);
+            ddOut.close();
+            
+            // Step 6
+            // Read and save M input
+            BufferedInputStream messageBufStream = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + messageFileName));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024 * 10];
+            int m = 0;
+            while ((m = messageBufStream.read(buffer)) != -1) {
+                out.write(buffer, 0, m);
+            }
+            byte[] byteMessage = out.toByteArray();
+    
+            // Create hash of M and display it 
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] calculatedHash = digest.digest(byteMessage);
+            System.out.println("Calculated Hash: " + bytesToHex(calculatedHash));
+    
+            // Compare dyrcypted hash (authentic digital digest) with calculated hash and display results
+            if(bytesToHex(calculatedHash).equals(bytesToHex(digitalDigest))){
+                System.out.println("Accepted! Digital digest passes the authentication check.");
+            }
+            else{
+                System.out.println("Rejected. Digital digest does NOT pass the authentication check.");
+            }
+            out.close();
+            out2.close();
+            symmetricKeyIn.close();
+            messageOut.close();
+            addmsgOut.close();
+            messageBufStream.close();
+            inputStream.close();
+            cypherBufStream.close();
+            addmsgIn.close();
+        }    
+        catch(Exception e){
+            System.out.println("Exception: " + e);
+        }    
+    }
+    
     //Getting Private Key and Decoder
     public static PrivateKey getPrivateKey(String filename) throws Exception {
         Scanner sc = new Scanner(new File(filename));
@@ -99,93 +212,5 @@ public class receiver {
     }
     }
 
-    //Main Method 
-    public static void main(String[] args) {
-        
-        try{
-                        
-            // Step 2
-            // Get and generate private key
-            PrivateKey privateKey = readPrivKeyFromFile("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/YPrivate.key");
-            System.out.println("The rsaKey" + privateKey.toString());
-
-            // Get and generate symmetric key
-            ObjectInputStream symmetricKeyIn = new ObjectInputStream(
-                new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/symmetric.key")));
-            String symmetricString = (String) symmetricKeyIn.readObject();
-            SecretKeySpec secretKeyxy = new SecretKeySpec(symmetricString.getBytes("UTF-8"), "AES"); 
-            byte[] primedKeyxy = secretKeyxy.getEncoded();
-            
-            // Step 3
-            // Get message file name from user
-            Scanner sc = new Scanner(System.in);
-            System.out.print("Input the name of the message file: "); 
-            String messageFileName = sc.next();
-            sc.close();
-            
-            // Step 4
-            // Get cypher file            
-            FileInputStream inputStream = new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.rsacipher");
-            BufferedInputStream cypherBufStream = new BufferedInputStream(inputStream);
-            // byte[] byteCypher = cypherBufStream.readAllBytes(); // May not need? 
-            
-            // Decrypt M and H using RSA encyption
-            OutputStream addmsgOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg")); 
-            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            while ((cypherBufStream.available()) > 0) {
-                cipher.init(Cipher.DECRYPT_MODE, privateKey);
-                addmsgOut.write(cipher.doFinal(cypherBufStream.readNBytes(128)));
-            }
-
-            // Step 5
-            // Read encrypted hash (or authentic digital digest) from add-msg
-            BufferedInputStream addmsgIN = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.add-msg"));
-            byte[] encryptedHash = addmsgIN.readNBytes(32);
-
-            // Copy rest of message from message.add-msg to user named message
-            BufferedOutputStream messageOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + messageFileName));
-            while ((addmsgIN.available()) > 0) {
-                messageOut.write(addmsgIN.readNBytes(300));
-            }
-
-            // Decrypt encrypted hash (authentic digital digest) and display it
-            byte[] digitalDigest = decrypt(encryptedHash, primedKeyxy); 
-            System.out.println("Decrypted Hash:  " + bytesToHex(digitalDigest));
-
-            // Write decrypted authentic digital digest to file 
-            BufferedOutputStream ddOut = new BufferedOutputStream(new FileOutputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/message.dd"));
-            ddOut.write(digitalDigest);
-            ddOut.close();
-            
-            // Step 6
-            // Read and save M input
-            BufferedInputStream messageBufStream = new BufferedInputStream(new FileInputStream("/Users/eggsaladsandwich/Box Sync/School/CS-3750/Project1/Receiver/" + messageFileName));
-            byte[] byteMessage = messageBufStream.readAllBytes();
-
-            // Create hash of M and display it 
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] calculatedHash = digest.digest(byteMessage);
-            System.out.println("Calculated Hash: " + bytesToHex(calculatedHash));
-
-            // Compare dyrcypted hash (authentic digital digest) with calculated hash and display results
-            if(bytesToHex(calculatedHash).equals(bytesToHex(digitalDigest))){
-                System.out.println("Accepted! Digital digest passes the authentication check.");
-            }
-            else{
-                System.out.println("Rejected. Digital digest does NOT pass the authentication check.");
-            }
-
-            symmetricKeyIn.close();
-            messageOut.close();
-            addmsgOut.close();
-            messageBufStream.close();
-            inputStream.close();
-            cypherBufStream.close();
-            addmsgIN.close();
-        }    
-        catch(Exception e){
-            System.out.println("Exception: " + e);
-        }    
-    }
     
 }
